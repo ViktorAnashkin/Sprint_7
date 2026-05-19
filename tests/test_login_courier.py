@@ -25,12 +25,17 @@ class TestLoginCourier:
             assert response.status_code == 200, \
                 f"Ожидался статус 200, получен {response.status_code}. Ответ: {response.text}"
 
+
+        with allure.step("Проверка, что ответ — валидный JSON"):
+            assert response.headers.get('content-type', '').startswith('application/json'), \
+                f"Ответ не в формате JSON. Content-Type: {response.headers.get('content-type')}. Ответ: {response.text}"
+
         with allure.step("Проверка наличия поля 'id' в ответе"):
-            try:
-                assert "id" in response.json(), \
-                    "В ответе успешного логина отсутствует поле 'id'. Ответ: {response.json()}"
-            except ValueError as e:
-                pytest.fail(f"Ответ не в формате JSON: {e}. Ответ: {response.text}")
+            response_json = response.json()
+            assert "id" in response_json, \
+                f"В ответе успешного логина отсутствует поле 'id'. Ответ: {response_json}"
+            assert isinstance(response_json["id"], int), \
+                f"Поле 'id' должно быть числом. Получено: {type(response_json['id'])}"
 
     @allure.title("Тестирование сценариев ошибок при авторизации курьера")
     @pytest.mark.parametrize(
@@ -84,17 +89,17 @@ class TestLoginCourier:
             except requests.RequestException as e:
                 pytest.fail(f"Ошибка сети при выполнении запроса: {e}")
 
-
         with allure.step(f"Проверка статуса ответа — ожидается {expected_status}"):
             assert response.status_code == expected_status, \
                 f"Статус ответа {response.status_code} не соответствует ожидаемому {expected_status}. Ответ: {response.text}"
 
+        with allure.step("Проверка, что ответ — валидный JSON"):
+            assert response.headers.get('content-type', '').startswith('application/json'), \
+                f"Ответ не в формате JSON. Content-Type: {response.headers.get('content-type')}. Ответ: {response.text}"
+
+
         with allure.step("Проверка сообщения об ошибке"):
-            try:
-                actual_message = response.json().get("message")
-                assert actual_message == expected_message, \
-                    f"Ожидалось сообщение '{expected_message}', получено: '{actual_message}'. Ответ: {response.text}"
-            except ValueError as e:
-                pytest.fail(f"Ответ не в формате JSON: {e}. Ответ: {response.text}")
-            except KeyError as e:
-                pytest.fail(f"В ответе отсутствует ожидаемое поле: {e}. Ответ: {response.text}")
+            response_json = response.json()
+            actual_message = response_json.get("message")
+            assert actual_message == expected_message, \
+                f"Ожидалось сообщение '{expected_message}', получено: '{actual_message}'. Ответ: {response_json}"
